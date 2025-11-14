@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Barre de dons - Gros Mimine</title>
+
+  <!-- Police futuriste -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Socket.IO Streamlabs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
+  <style>
+    :root {
+      --progress: 0%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent; /* important pour overlay */
+      font-family: "Orbitron", system-ui, sans-serif;
+    }
+
+    .don-wrapper {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .don-title {
+      padding: 8px 24px;
+      background: linear-gradient(90deg, #17002a, #26003f);
+      border-radius: 999px;
+      border: 2px solid #ff00c8;
+      color: #9dffcf;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 20px;
+      box-shadow: 0 0 18px rgba(255, 0, 200, 0.7);
+    }
+
+    .don-bar {
+      position: relative;
+      width: 600px;
+      max-width: 90vw;
+      padding: 6px;
+      background: linear-gradient(90deg, #ff00c8, #ff4ddc);
+      border-radius: 999px;
+      box-shadow: 0 0 25px rgba(255, 0, 200, 0.8);
+    }
+
+    .don-bar-inner {
+      position: relative;
+      width: 100%;
+      height: 32px;
+      background: #1a032a;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 2px solid #ff7fea;
+    }
+
+    .don-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: var(--progress);
+      background: linear-gradient(90deg, #ff66e0, #ff00c8);
+      box-shadow: 0 0 18px rgba(255, 0, 200, 0.9);
+      transition: width 0.6s ease-out;
+    }
+
+    .don-percentage {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="don-wrapper">
+    <div class="don-title">
+      POUR LES SOIN DE GROS MIMINE
+    </div>
+
+    <div class="don-bar">
+      <div class="don-bar-inner">
+        <div class="don-bar-fill" id="donFill"></div>
+      </div>
+    </div>
+
+    <div class="don-percentage" id="donText"></div>
+  </div>
+
+  <script>
+    /* 🔧 À CONFIGURER */
+    const objectif = 150; // ton objectif en € (mets ce que tu veux)
+    let montantActuel = 0;
+
+    function majBarre() {
+      const pourcentage = Math.max(0, Math.min(100, (montantActuel / objectif) * 100));
+      document.documentElement.style.setProperty("--progress", pourcentage + "%");
+      document.getElementById("donText").textContent = montantActuel.toFixed(2) + "€ collectés";
+    }
+
+    majBarre();
+
+    /* 💚 CONNEXION AU SOCKET STREAMLABS */
+
+    // 1) Mets ici ton Socket API Token Streamlabs
+    const socketToken = eyJ0b2tlbiI6IjdENUNEMUU4OTQ3QTgyOTJCQzkxQzI3QUVDQ0UwQkY5NDJCQ0RGQTRDNjQ3Mzg4MDcxRUEzOEM1NDUyQ0FEOUJGMzRFMjYyRkUwNzhDNzdFNTNFRjM2MTRCMzZENEJEODQ4QURBMzQzOTdFN0E3ODAxMDM1RkREQTMzMzYzQzc0REIyMzc1ODFBMzI4QUYzMTQ5MDgxMEM1RTUyQjc5NzQ3OUMyMzM1Q0VFOTFGNjkyQjQ0QTkyQjUxQTZBOEMyQzU1MTQ3N0VDNDY3MEU3RTQxQ0FFRTk0NTBERTlDMjY0ODczMzQyN0NBM0Y2OTk3NkUzRjdDNTUzMUMiLCJyZWFkX29ubHkiOnRydWUsInByZXZlbnRfbWFzdGVyIjp0cnVlLCJ0d2l0Y2hfaWQiOiI0MjQ1NjM4MiJ9;
+
+    // 2) Connexion au serveur de sockets Streamlabs
+    const streamlabs = io(`https://sockets.streamlabs.com?token=${socketToken}`, {
+      transports: ['websocket']
+    });
+
+    // 3) Quand un event arrive (donation, follow, etc.)
+    streamlabs.on('event', (eventData) => {
+      // On filtre pour ne garder que les dons
+      if ((!eventData.for || eventData.for === 'streamlabs') && eventData.type === 'donation') {
+        const messages = eventData.message || [];
+        if (messages.length > 0) {
+          const donation = messages[0];
+          const amount = parseFloat(donation.amount || 0);
+          if (!isNaN(amount)) {
+            montantActuel += amount;
+            majBarre();
+          }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
